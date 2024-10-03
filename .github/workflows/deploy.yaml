@@ -1,0 +1,78 @@
+# 
+# GitHub Actions workflow.
+#
+# Automatically deploys the Node.js microservice to Kubernetes on push to any branch. 
+# For real use you might want to restrict this to the "prod" branch.
+#
+name: Deploy Microservices
+
+on:
+  
+  workflow_dispatch: 
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    env:      
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}  # Use region from secrets
+      VERSION: ${{ github.sha }}
+      APP_NAME: ${{ secrets.APP_NAME }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v3
+
+      # Set up Docker
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v1
+
+      # Install Docker Compose
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      # Get the ECR repository URL
+      - name: Set ECR repository URL
+        id: set_ecr_url
+        run: echo "ECR_REPOSITORY_URL=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com/${{ secrets.APP_NAME }}" >> $GITHUB_ENV
+
+      # Login to AWS ECR
+      - name: Login to AWS ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com
+
+
+      # Make the build script executable
+      - name: Make build-image.sh executable
+        run: chmod +x ./scripts/build-image.sh
+
+      # Build images
+      - name: Build images
+        run: ./scripts/build-image.sh
+
+      # After building the images
+      - name: Check for built images
+        run: |
+          docker images
+
+      
+
+      # Make the push-image.sh script executable
+      - name: Make push-image.sh executable
+        run: chmod +x ./scripts/push-image.sh
+
+      # Push images to ECR
+      - name: Push Images
+        run: |
+          ./scripts/push-image.sh
+
+      # Check the status of running Docker containers
+      - name: Check Docker Container Status
+        run: |
+          echo "Active Docker Containers:"
+          docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}"

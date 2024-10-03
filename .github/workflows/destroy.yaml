@@ -1,0 +1,59 @@
+# 
+# GitHub Actions workflow.
+#
+# Automatically deploys the Node.js microservice to Kubernetes on push to any branch. 
+# For real use you might want to restrict this to the "prod" branch.
+#
+
+name: Destroy Terraformation
+
+on:
+
+  #
+  # Allows deployment to be invoked manually through the GitHub Actions user interface.
+  #
+  workflow_dispatch: 
+
+jobs:
+
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+      pages: write
+    
+    env:
+      VERSION: ${{ github.sha }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      AZURE_APP_NAME: ${{ secrets.AZURE_APP_NAME }}
+      REGISTRY_UN: ${{ secrets.AZURE_APP_NAME }}
+      CONTAINER_REGISTRY: ${{ secrets.AZURE_APP_NAME }}.azurecr.io
+      AZURE_RESOURCE_GROUP_NAME: ${{ secrets.AZURE_RESOURCE_GROUP_NAME }}
+
+    steps:
+      
+      # Checks-out your repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v3
+
+      # login to Azure services
+      - name: Azure login
+        run: az login --service-principal -t ${{ secrets.AZURE_TENANT_ID }} -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+       # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./scripts/terraform
+
+       # Terraform Destroy
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve -var app_name=${{ secrets.AZURE_APP_NAME }}
+        working-directory: ./scripts/terraform/

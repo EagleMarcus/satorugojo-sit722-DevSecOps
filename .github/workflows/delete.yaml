@@ -1,0 +1,71 @@
+# 
+# GitHub Actions workflow.
+#
+# Automatically deploys the Node.js microservice to Kubernetes on push to any branch. 
+# For real use you might want to restrict this to the "prod" branch.
+#
+
+name: Delete Microservices
+
+on:
+  #
+  # Allows deployment to be invoked manually through the GitHub Actions user interface.
+  #
+  workflow_dispatch: 
+
+jobs:
+
+  delete:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+      pages: write
+    
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_APP_NAME: ${{ secrets.AZURE_APP_NAME }}
+      REGISTRY_UN: ${{ secrets.AZURE_APP_NAME }}
+      CONTAINER_REGISTRY: ${{ secrets.AZURE_APP_NAME }}.azurecr.io
+      AZURE_RESOURCE_GROUP_NAME: ${{ secrets.AZURE_RESOURCE_GROUP_NAME }}
+      VERSION: ${{ github.sha }}
+
+    steps:
+      
+      # Checks-out your repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v3
+
+      # login to Azure services
+      - name: Azure login
+        run: az login --service-principal -t ${{ secrets.AZURE_TENANT_ID }} -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CREDENTIALS }}
+        
+      #- uses: tale/kubectl-action@v1
+      #  with:
+      #    base64-kube-config: ${{ secrets.KUBE_CONFIG }}
+      #    kubectl-version: v1.30.3
+
+      - name: Set AKS context
+        id: set-context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: '${{ secrets.AZURE_RESOURCE_GROUP_NAME }}' 
+          cluster-name: '${{ secrets.AZURE_APP_NAME }}' 
+      
+      - name: Setup kubectl
+        id: install-kubectl
+        uses: azure/setup-kubectl@v3 
+      
+      #
+      # Deletes the configuration template and deploys the microservice.
+      #
+      - name: Delete
+        env:
+          CONTAINER_REGISTRY: ${{ steps.CONTAINER_REGISTRY.outputs.h }}
+        run: | 
+               chmod +x ./scripts/delete.sh
+               ./scripts/delete.sh
+
+      - name: 'Getting Deployments'
+        run: 'kubectl get deployments'

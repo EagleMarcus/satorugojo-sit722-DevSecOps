@@ -1,0 +1,57 @@
+# 
+# GitHub Actions workflow.
+#
+# Infrastructure Formation for the Deployment
+#
+
+name: Deploy Infrastructure
+
+on:
+
+  #
+  # Allows deployment to be invoked manually through the GitHub Actions user interface.
+  #
+  workflow_dispatch: 
+  
+jobs:
+
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}  # Use region from secrets
+      VERSION: ${{ github.sha }}
+
+    steps:
+      
+      # Checks-out your repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v3
+
+      # Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}  # Use region from secrets
+
+      # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+       # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./scripts/terraform/  # Adjusted path to the Terraform folder
+
+      # Terraform Plan
+      - name: Terraform Plan
+        run: terraform plan
+        working-directory: ./scripts/terraform/  # Adjusted path to the Terraform folder
+
+      # Terraform Apply
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+        working-directory: ./scripts/terraform/  # Adjusted path to the Terraform folder
