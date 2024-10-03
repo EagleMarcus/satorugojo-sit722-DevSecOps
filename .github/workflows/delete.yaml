@@ -23,35 +23,36 @@ jobs:
       contents: read
       pages: write
     
-    env:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_APP_NAME: ${{ secrets.AZURE_APP_NAME }}
-      REGISTRY_UN: ${{ secrets.AZURE_APP_NAME }}
-      CONTAINER_REGISTRY: ${{ secrets.AZURE_APP_NAME }}.azurecr.io
-      AZURE_RESOURCE_GROUP_NAME: ${{ secrets.AZURE_RESOURCE_GROUP_NAME }}
+    env:      
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}  # Use region from secrets
       VERSION: ${{ github.sha }}
+      APP_NAME: ${{ secrets.APP_NAME }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
     steps:
       
       # Checks-out your repository under $GITHUB_WORKSPACE.
       - uses: actions/checkout@v3
 
-      # login to Azure services
-      - name: Azure login
-        run: az login --service-principal -t ${{ secrets.AZURE_TENANT_ID }} -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CREDENTIALS }}
+      # Login to AWS ECR
+      - name: Login to AWS ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_DEFAULT_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com
+
         
       #- uses: tale/kubectl-action@v1
       #  with:
       #    base64-kube-config: ${{ secrets.KUBE_CONFIG }}
       #    kubectl-version: v1.30.3
 
-      - name: Set AKS context
-        id: set-context
-        uses: azure/aks-set-context@v3
-        with:
-          resource-group: '${{ secrets.AZURE_RESOURCE_GROUP_NAME }}' 
-          cluster-name: '${{ secrets.AZURE_APP_NAME }}' 
+      #- name: Set AKS context
+      #  id: set-context
+      #  uses: azure/aks-set-context@v3
+      #  with:
+      #    resource-group: '${{ secrets.AZURE_RESOURCE_GROUP_NAME }}' 
+      #    cluster-name: '${{ secrets.AZURE_APP_NAME }}' 
       
       - name: Setup kubectl
         id: install-kubectl
