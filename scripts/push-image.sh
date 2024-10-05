@@ -21,9 +21,9 @@
 aws ecr get-login-password --region "${AWS_DEFAULT_REGION}" | docker login --username AWS --password-stdin "${ECR_REPOSITORY_URL}"
 
 # Tag the images for each microservice
-docker tag "book_catalog:latest" "${ECR_REPOSITORY_URL}/${APP_NAME}_microservice1:latest"
-docker tag "inventory_management:latest" "${ECR_REPOSITORY_URL}/${APP_NAME}_microservice2:latest"
+docker tag "book_catalog" "${ECR_REPOSITORY_URL}:book_catalog"
+docker tag "inventory_management" "${ECR_REPOSITORY_URL}:inventory_management"
 
 # Push images for all microservices
-docker push "${ECR_REPOSITORY_URL}/${APP_NAME}_microservice1:latest"
-docker push "${ECR_REPOSITORY_URL}/${APP_NAME}_microservice2:latest"
+docker push "${ECR_REPOSITORY_URL}:book_catalog"
+docker push "${ECR_REPOSITORY_URL}:inventory_management"

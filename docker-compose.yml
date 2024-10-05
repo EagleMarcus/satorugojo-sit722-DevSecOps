@@ -5,7 +5,7 @@ services:
     build:
       context: ./book_catalog/
       dockerfile: Dockerfile      
-    image: book_catalog:latest
+    image: book_catalog
     ports:
       - "5051:5051"
     environment:
@@ -18,7 +18,7 @@ services:
     build:
       context: ./inventory_management/
       dockerfile: Dockerfile      
-    image: inventory_management:latest
+    image: inventory_management
     ports:
       - "5052:5052"
     environment:
