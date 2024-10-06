@@ -50,7 +50,6 @@ jobs:
       - name: Delete ECR Repositories
         run: |
           aws ecr delete-repository --repository-name "${{ secrets.APP_NAME }}" --force
-          aws ecr delete-repository --repository-name "${{ secrets.APP_NAME }}" --force
 
        # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
       - name: Terraform Init
